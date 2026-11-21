@@ -1,0 +1,44 @@
+name: Build and test Docker image
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (fetches the latest model from DagsHub)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: digits-api:latest
+          build-args: |
+            CACHE_BUST=${{ github.run_id }}
+          secrets: |
+            dagshub_user=${{ secrets.DAGSHUB_USERNAME }}
+            dagshub_token=${{ secrets.DAGSHUB_TOKEN }}
+
+      - name: Smoke test /predict
+        run: |
+          docker run -d --name digits-api -p 8000:8000 digits-api:latest
+          payload=$(python3 -c 'import json; print(json.dumps({"inputs": [[0.0] * 64]}))')
+          for i in $(seq 1 30); do
+            if response=$(curl -sf -X POST http://localhost:8000/predict \
+                -H "Content-Type: application/json" -d "$payload"); then
+              echo "Response: $response"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not answer in time"
+          docker logs digits-api
+          exit 1
