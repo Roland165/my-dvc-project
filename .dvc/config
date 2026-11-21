@@ -1,5 +1,10 @@
 [core]
-    remote = myremote
+    remote = myazure
 ['remote "myremote"']
     url = gdrive://18vkjQlf13pS3Qww0uTwMIddINNtFa0WQ
     gdrive_client_id = 820699420928-47o8cv80lrno8fb3qlbn7gdhq05r3muq.apps.googleusercontent.com
+['remote "myazure"']
+    url = azure://dvc
+    account_name = wut2026
+    timeout = 900
+    read_timeout = 900
